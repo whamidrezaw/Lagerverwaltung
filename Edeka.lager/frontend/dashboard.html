@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bestandsübersicht — EDEKA Lager</title>
+<link rel="stylesheet" href="/assets/shared.css?v=2.2">
+<style>
+  /* فقط چیزهایی که در shared.css نیستند */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .toolbar .form-ctrl { max-width: 280px; }
+  .unit-filter { max-width: 150px; }
+  .emoji-input { width: 56px; text-align: center; font-size: 18px; }
+  .form-row-3 { display: grid; grid-template-columns: 56px 1fr; gap: 12px; }
+  .bio-checkbox { display: inline-flex; align-items: center; gap: 10px; padding: 8px 4px; min-height: 38px; cursor: pointer; user-select: none; }
+  .bio-checkbox input { width: 18px; height: 18px; accent-color: var(--color-success); cursor: pointer; }
+  @media (max-width: 640px) {
+    .topbar { height: auto; flex-wrap: wrap; padding: 10px 14px; gap: 10px; }
+    .topbar-left { flex: 1 1 100%; min-width: 0; }
+    .topbar-right {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--color-divider);
+    }
+    .topbar-right .icon-btn { width: 40px; height: 40px; flex: 0 0 40px; }
+    .topbar-right .btn { flex: 1 1 auto; min-height: 40px; justify-content: center; }
+    .toolbar .form-ctrl { flex: 1 1 180px; max-width: none; }
+    .toolbar .unit-filter { flex: 1 1 130px; max-width: none; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<div class="main-area">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" data-action="seitenleisteUmschalten">☰</button>
+      <div>
+        <div class="topbar-title">📦 Bestandsübersicht</div>
+        <div class="topbar-date" id="topbar-date"></div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" data-action="themaWechseln" title="Theme wechseln">🌓</button>
+      <button class="icon-btn" id="admin-tools-btn" data-action="adminWerkzeugeOeffnen" title="Admin-Werkzeuge" style="display:none">⚙️</button>
+      <button class="btn btn-ghost" data-action="aktivitaetOeffnen" title="Aktivitäts-Protokoll">📋 Protokoll</button>
+      <button class="btn btn-primary" data-action="berichtSendenUndAktualisieren">📤 Bericht senden</button>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <div class="section-label">Bestand nach Kategorie</div>
+    <div class="kpi-grid" id="category-kpi-grid">
+      <div class="kpi-card skeleton" style="height:88px"></div>
+      <div class="kpi-card skeleton" style="height:88px"></div>
+      <div class="kpi-card skeleton" style="height:88px"></div>
+      <div class="kpi-card skeleton" style="height:88px"></div>
+    </div>
+
+    <div class="section-label">Übergreifend</div>
+    <div class="kpi-grid" id="overall-kpi-grid"></div>
+
+    <div class="toolbar">
+      <input type="search" class="form-ctrl" id="search-input" placeholder="🔍 Produkt suchen…">
+      <select class="form-ctrl unit-filter" id="unit-filter-select">
+        <option value="">Alle Einheiten</option>
+      </select>
+      <div class="filter-tabs" id="category-filter-tabs"></div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-header-row">
+        <div>
+          <div class="table-title">Produkte</div>
+          <div class="table-meta" id="table-meta">…</div>
+        </div>
+        <div class="table-actions">
+          <button class="btn btn-primary" data-action="produktNeu">+ Produkt hinzufügen</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Produkt</th>
+            <th>Aktueller Bestand</th>
+            <th>Zuletzt gezählt</th>
+            <th style="width:90px"></th>
+          </tr>
+        </thead>
+        <tbody id="product-tbody">
+          <tr><td colspan="4"><div class="skeleton" style="height:40px"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="empty-state" style="display:none">
+      <div class="empty-icon">📦</div>
+      <div class="empty-title">Keine Produkte gefunden</div>
+      <div class="empty-desc">Füge dein erstes Produkt hinzu oder ändere die Filter.</div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Aktivitäts-Protokoll Drawer ──────────────────────────────── -->
+<div class="activity-overlay" id="activity-overlay" data-action="aktivitaetHintergrund">
+  <div class="activity-drawer">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">📋 Aktivitäts-Protokoll</div>
+        <div style="font-size:11.5px; color:var(--color-text-muted)" id="activity-meta">Letzte Bestandsänderungen (Live)</div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center">
+        <button type="button" class="icon-btn" data-action="aktivitaetLaden" title="Aktualisieren">↻</button>
+        <button type="button" class="modal-close" data-action="aktivitaetSchliessen" aria-label="Schließen">✕</button>
+      </div>
+    </div>
+    <div id="activity-body" class="activity-list"></div>
+  </div>
+</div>
+
+<!-- ── Produkt Hinzufügen/Bearbeiten Modal ──────────────────────── -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="product-modal-title">Produkt hinzufügen</div>
+      <button type="button" class="modal-close" data-action="produktModalSchliessen" aria-label="Schließen">✕</button>
+    </div>
+    <form id="product-form">
+      <input type="hidden" id="product-id">
+      <div class="form-row-3" style="margin-bottom:14px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Emoji</label>
+          <input type="text" class="form-ctrl emoji-input" id="product-emoji" value="📦" maxlength="4">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Produktname</label>
+          <input type="text" class="form-ctrl" id="product-name" placeholder="z.B. Orange" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Kategorie</label>
+          <select class="form-ctrl" id="product-category" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Einheit</label>
+          <select class="form-ctrl" id="product-unit" required></select>
+        </div>
+      </div>
+
+      <label class="bio-checkbox">
+        <input type="checkbox" id="product-isbio">
+        <span>🌱 Bio-Produkt</span>
+      </label>
+
+      <div class="form-group" id="stock-field-group">
+        <label class="form-label">Anfangsbestand</label>
+        <input type="number" class="form-ctrl" id="product-stock" value="0" step="0.1" min="0">
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:18px">
+        <button type="button" class="btn btn-ghost" style="flex:1" data-action="produktModalSchliessen">Abbrechen</button>
+        <button type="submit" class="btn btn-primary" style="flex:1">Speichern</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Admin-Werkzeuge Modal ────────────────────────────────────── -->
+<div class="modal-overlay" id="admin-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">⚙️ Admin-Werkzeuge</div>
+      <button type="button" class="modal-close" data-action="adminWerkzeugeSchliessen" aria-label="Schließen">✕</button>
+    </div>
+    <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:16px; line-height:1.6">
+      Diese Aktionen wirken sich auf alle Produkte aus. Mit Bedacht verwenden.
+    </p>
+    <div style="display:flex; flex-direction:column; gap:8px">
+      <button class="btn btn-ghost" style="justify-content:flex-start" data-action="bestandZuruecksetzen" data-mit-gestern="true">
+        🔄 Alle Bestände auf 0 setzen
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Confirm Dialog ────────────────────────────────────────────── -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirm-icon">⚠️</div>
+    <div class="confirm-title" id="confirm-title">Bist du sicher?</div>
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="confirm-btns">
+      <button class="btn btn-ghost" style="flex:1" data-action="bestaetigungSchliessen">Abbrechen</button>
+      <button class="btn btn-danger" style="flex:1" id="confirm-action-btn">Bestätigen</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script src="/assets/shared.js"></script>
+<script src="/assets/dashboard.js"></script>
+</body>
+</html>

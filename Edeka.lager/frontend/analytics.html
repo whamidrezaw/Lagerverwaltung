@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analyse &amp; Berichte — EDEKA Lager</title>
+<link rel="stylesheet" href="/assets/shared.css?v=2.2">
+<style>
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .period-select { max-width: 180px; }
+  @media (max-width: 640px) {
+    .topbar { height: auto; flex-wrap: wrap; padding: 10px 14px; gap: 10px; }
+    .topbar-left { flex: 1 1 100%; min-width: 0; }
+    .topbar-right {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--color-divider);
+    }
+    .topbar-right .icon-btn { width: 40px; height: 40px; flex: 0 0 40px; }
+    .topbar-right .btn { flex: 1 1 auto; min-height: 40px; justify-content: center; }
+    .period-select { max-width: none; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<div class="main-area">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" data-action="seitenleisteUmschalten">☰</button>
+      <div>
+        <div class="topbar-title">📊 Analyse &amp; Berichte</div>
+        <div class="topbar-date" id="topbar-date"></div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" data-action="themaWechseln" title="Theme wechseln">🌓</button>
+      <button class="btn btn-primary" data-action="berichtSendenUndAktualisieren">📤 Bericht jetzt senden</button>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <div class="filter-tabs" style="margin-bottom:18px">
+      <button class="filter-tab active" id="tab-btn-today" data-action="tabWechseln" data-tab="today">📅 Heute</button>
+      <button class="filter-tab" id="tab-btn-trend" data-action="tabWechseln" data-tab="trend">📈 Verlauf</button>
+    </div>
+
+    <!-- ── TAB: Heute ─────────────────────────────────────────── -->
+    <div class="tab-content active" id="tab-today">
+      <div class="table-header-row" style="background:transparent; border:none; padding:0 0 12px;">
+        <div>
+          <div class="table-title">Berichte von heute</div>
+          <div class="table-meta" id="today-meta">…</div>
+        </div>
+        <div class="table-actions">
+          <button class="btn btn-ghost" data-action="exportLive" data-typ="excel">📊 Excel (Live)</button>
+          <button class="btn btn-ghost" data-action="exportLive" data-typ="pdf">📄 PDF (Live)</button>
+        </div>
+      </div>
+
+      <div class="report-list" id="today-list">
+        <div class="skeleton" style="height:60px"></div>
+      </div>
+      <div class="empty-state" id="today-empty" style="display:none">
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">Heute noch kein Bericht gesendet</div>
+        <div class="empty-desc">Klicke auf „Bericht jetzt senden", um den ersten Bericht des Tages zu erstellen.</div>
+      </div>
+    </div>
+
+    <!-- ── TAB: Verlauf ───────────────────────────────────────── -->
+    <div class="tab-content" id="tab-trend">
+      <div class="toolbar" style="margin-bottom:16px">
+        <select class="form-ctrl period-select" id="period-select">
+          <option value="7">Letzte 7 Tage</option>
+          <option value="14" selected>Letzte 14 Tage</option>
+          <option value="30">Letzte 30 Tage</option>
+          <option value="90">Letzte 90 Tage</option>
+        </select>
+      </div>
+
+      <div class="kpi-grid kpi-grid-3" id="trend-kpi-grid"></div>
+
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <div>
+              <div class="chart-card-title">Verbrauch pro Tag</div>
+              <div class="chart-card-sub">Basierend auf dem Tagesabschluss (00:00)</div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="trend-chart" height="100"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <div class="chart-card-title">Meistverbraucht</div>
+          </div>
+          <div class="top-list" id="top-products-list"></div>
+        </div>
+      </div>
+
+      <div class="section-label">Verbrauch nach Kategorie</div>
+      <div class="kpi-grid" id="category-breakdown-grid"></div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script src="/assets/shared.js"></script>
+<script src="/assets/chart.umd.min.js"></script>
+<script src="/assets/analytics.js"></script>
+</body>
+</html>
