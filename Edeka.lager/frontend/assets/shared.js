@@ -177,7 +177,10 @@ window.animVal = animVal;
 
 // 8. report_sending
 // جایگزین sendTelegramReport قدیمی — الان snapshot هم ذخیره می‌کند، نه فقط ارسال تلگرام
+let _sendingReport = false;
 async function sendReportNow() {
+  if (_sendingReport) return null;
+  _sendingReport = true;
   showToast('📤 Bericht wird erstellt …', 'info');
   try {
     const result = await api('/api/reports/send-now', 'POST');
@@ -193,6 +196,8 @@ async function sendReportNow() {
   } catch (e) {
     showToast('⚠️ ' + e.message, 'err');
     throw e;
+  } finally {
+    _sendingReport = false;
   }
 }
 window.sendReportNow = sendReportNow;

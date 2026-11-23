@@ -127,7 +127,10 @@ router.put('/:id/reset-password', auth, adminOnly, async (req, res) => {
     return res.status(400).json({ message: 'Passwort mindestens 6 Zeichen' });
 
   const hashed = await bcrypt.hash(newPassword, 12);
-  const user   = await User.findByIdAndUpdate(req.params.id, { password: hashed });
+  const user   = await User.findByIdAndUpdate(req.params.id, {
+    $set: { password: hashed },
+    $inc: { tokenVersion: 1 }
+  });
   if (!user) return res.status(404).json({ message: 'Benutzer nicht gefunden' });
   if (typeof auth.invalidateUserCache === 'function') auth.invalidateUserCache(req.params.id);
   res.json({ message: '✅ Passwort zurückgesetzt' });

@@ -121,7 +121,7 @@ router.post('/login', loginJeName, loginJeIp, async (req, res) => {
   await user.save();
 
   const token = jwt.sign(
-    { id: user._id },
+    { id: user._id, tv: user.tokenVersion ?? 0 },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
@@ -169,7 +169,11 @@ router.put('/change-password', auth, async (req, res) => {
     });
 
   const hashed = await bcrypt.hash(newPassword, 12);
-  await User.findByIdAndUpdate(user._id, { password: hashed });
+  await User.findByIdAndUpdate(user._id, {
+    $set: { password: hashed },
+    $inc: { tokenVersion: 1 }
+  });
+  if (typeof auth.invalidateUserCache === 'function') auth.invalidateUserCache(user._id);
   res.json({ message: '✅ Passwort erfolgreich geändert' });
 });
 

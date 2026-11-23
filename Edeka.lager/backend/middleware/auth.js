@@ -65,6 +65,10 @@ const authMiddleware = async (req, res, next) => {
     if (!user.isActive)
       return res.status(403).json({ message: 'Konto deaktiviert – Zugriff verweigert' });
 
+    // SEC-001: Tokens vor Passwortänderung/-reset sofort ungültig machen
+    if ((decoded.tv ?? 0) !== (user.tokenVersion ?? 0))
+      return res.status(401).json({ message: 'Token abgelaufen – bitte erneut einloggen' });
+
     req.user = user;
     next();
   } catch (err) {

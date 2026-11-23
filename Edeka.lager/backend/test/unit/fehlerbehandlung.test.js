@@ -77,3 +77,14 @@ test('außerhalb von production wird wie bisher jeder Fehler protokolliert', () 
   const { log } = lauf('development', Object.assign(new Error('Cast'), { name: 'CastError' }));
   assert.equal(log.length, 1);
 });
+
+test('BUG-002: bei bereits gesendeten Headern wird an next(err) delegiert statt res.status() aufzurufen', () => {
+  const res = antwort();
+  res.headersSent = true;
+  const err = new Error('Stream abgebrochen');
+  let weitergeleitet = null;
+  fehlerbehandlung(err, REQ, res, (e) => { weitergeleitet = e; });
+  assert.equal(weitergeleitet, err);
+  assert.equal(res.code, null);
+  assert.equal(res.body, null);
+});

@@ -9,26 +9,57 @@
 // یعنی همه‌ی گزارش به‌خاطر یک نام محصول ارسال نمی‌شود، نه فقط همان خط.
 const { roundStock } = require('../lib/validate');
 
-const TELEGRAM_TIMEOUT_MS = 10000;
+const TIMEZONE             = 'Europe/Berlin';
+const TELEGRAM_TIMEOUT_MS  = 10000;
+const TELEGRAM_MAX_LENGTH  = 4096;
+const TELEGRAM_CHUNK_LIMIT = 4000;
 
 function escapeMarkdown(text) {
   return String(text ?? '').replace(/([_*`[])/g, '\\$1');
 }
 
-async function sendTelegram(text, chatId = null, options = {}) {
-  const botToken  = process.env.TELEGRAM_BOT_TOKEN;
-  const defaultId = process.env.TELEGRAM_CHAT_ID;
-  const target    = chatId || defaultId;
+/**
+ * Zerlegt lange Nachrichten sauber an Zeilenumbrüchen in Teile <= maxLen Zeichen
+ * (Telegram-Limit: 4096 Zeichen). Überlange Einzelzeilen werden sicher geschnitten.
+ */
+function splitTelegramText(text, maxLen = TELEGRAM_CHUNK_LIMIT) {
+  const str = String(text ?? '');
+  if (str.length <= maxLen) return [str];
 
-  if (!botToken || !target) {
-    throw new Error('Telegram nicht konfiguriert (.env fehlt: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID)');
+  const chunks = [];
+  let current = '';
+  const lines = str.split('\n');
+
+  for (const line of lines) {
+    if (line.length > maxLen) {
+      if (current) {
+        chunks.push(current);
+        current = '';
+      }
+      let offset = 0;
+      while (offset < line.length) {
+        let end = Math.min(offset + maxLen, line.length);
+        // Nicht direkt nach einem Escape-Backslash trennen
+        if (end < line.length && end > offset + 1 && line[end - 1] === '\\') end -= 1;
+        chunks.push(line.slice(offset, end));
+        offset = end;
+      }
+      continue;
+    }
+
+    const candidate = current ? `${current}\n${line}` : line;
+    if (candidate.length > maxLen) {
+      chunks.push(current);
+      current = line;
+    } else {
+      current = candidate;
+    }
   }
+  if (current) chunks.push(current);
+  return chunks;
+}
 
-  const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0
-    ? options.timeoutMs
-    : TELEGRAM_TIMEOUT_MS;
-
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+async function sendTelegramChunk(url, target, text, timeoutMs) {
   let res;
   try {
     res = await fetch(url, {
@@ -55,6 +86,32 @@ async function sendTelegram(text, chatId = null, options = {}) {
   return data;
 }
 
+async function sendTelegram(text, chatId = null, options = {}) {
+  const botToken  = process.env.TELEGRAM_BOT_TOKEN;
+  const defaultId = process.env.TELEGRAM_CHAT_ID;
+  const target    = chatId || defaultId;
+
+  if (!botToken || !target) {
+    throw new Error('Telegram nicht konfiguriert (.env fehlt: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID)');
+  }
+
+  const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0
+    ? options.timeoutMs
+    : TELEGRAM_TIMEOUT_MS;
+
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  const str = String(text ?? '');
+  const chunks = str.length <= TELEGRAM_MAX_LENGTH
+    ? [str]
+    : splitTelegramText(str, TELEGRAM_CHUNK_LIMIT);
+
+  let lastData = null;
+  for (const chunk of chunks) {
+    lastData = await sendTelegramChunk(url, target, chunk, timeoutMs);
+  }
+  return lastData;
+}
+
 /**
  * متن گزارش تلگرام را از لیست محصولات زنده (Product[]) می‌سازد.
  * مصرف نسبت به yesterdayStock (پایه‌ی نیمه‌شب) حساب می‌شود — تجمعی از نیمه‌شب تا الان،
@@ -62,11 +119,12 @@ async function sendTelegram(text, chatId = null, options = {}) {
  */
 function buildTelegramText(products, options = {}) {
   const liveOnly = options && options.liveOnly === true;
-  const now = new Date();
+  const now = options && options.now instanceof Date ? options.now : new Date();
   const dateLabel = now.toLocaleDateString('de-DE', {
+    timeZone: TIMEZONE,
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
-  const timeLabel = now.toLocaleTimeString('de-DE');
+  const timeLabel = now.toLocaleTimeString('de-DE', { timeZone: TIMEZONE });
 
   const totalStock    = roundStock(products.reduce((s, p) => s + (p.currentStock ?? 0), 0));
   const totalConsumed = roundStock(products.reduce(
@@ -114,4 +172,10 @@ function telegramEingerichtet() {
   return Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
 }
 
-module.exports = { sendTelegram, buildTelegramText, escapeMarkdown, telegramEingerichtet };
+module.exports = {
+  sendTelegram,
+  buildTelegramText,
+  escapeMarkdown,
+  splitTelegramText,
+  telegramEingerichtet
+};

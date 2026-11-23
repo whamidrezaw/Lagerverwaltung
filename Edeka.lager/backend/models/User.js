@@ -31,6 +31,7 @@ const userSchema = new mongoose.Schema({
     match: [/^-?\d+$/, 'Telegram Chat-ID muss numerisch sein']
   },
   isActive:       { type: Boolean, default: true, index: true },
+  tokenVersion:   { type: Number,  default: 0 },
   lastLogin:      { type: Date,    default: null },
   loginHistory:   { type: [loginEntrySchema], default: [] }
 }, {

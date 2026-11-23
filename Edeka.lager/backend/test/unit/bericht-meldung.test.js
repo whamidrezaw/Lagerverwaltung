@@ -34,3 +34,30 @@ test('gesendet: grün „gesendet und gespeichert“', async () => {
   const m = await meldungen(201, { telegram: 'gesendet', log: {} });
   assert.deepEqual(m.at(-1), ['ok', '✅ Bericht gesendet und gespeichert!']);
 });
+
+test('FE-005: Doppelklick auf sendReportNow sendet nur eine Anfrage und gibt Sperre danach wieder frei', async () => {
+  let aufrufe = 0;
+  let aufloesen;
+  const b = ladeShared({
+    token: 'x',
+    fetchStub: () => {
+      aufrufe++;
+      return new Promise(r => { aufloesen = () => r(antwort(201, { telegram: 'aus', log: {} })); });
+    }
+  });
+  b.sandbox.showToast = () => {};
+
+  const p1 = b.sandbox.sendReportNow();
+  const p2 = b.sandbox.sendReportNow();
+  assert.equal(await p2, null, 'zweiter gleichzeitiger Aufruf muss ignoriert werden');
+  assert.equal(aufrufe, 1);
+
+  aufloesen();
+  await p1;
+
+  // Nach Abschluss muss die Sperre wieder frei sein
+  const p3 = b.sandbox.sendReportNow();
+  assert.equal(aufrufe, 2);
+  aufloesen();
+  await p3;
+});

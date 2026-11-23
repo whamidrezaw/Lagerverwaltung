@@ -2,6 +2,8 @@ const ExcelJS     = require('exceljs');
 const PDFDocument = require('pdfkit');
 const { sanitizeSpreadsheetCell, roundStock } = require('../lib/validate');
 
+const TIMEZONE = 'Europe/Berlin';
+
 /** پالت رنگ برای دسته‌بندی‌ها — چرخشی، چون دسته‌بندی‌ها داینامیک هستند و تعدادشان از قبل معلوم نیست */
 const PALETTE = [
   { bg: 'D9F0E6', text: '0B3D2E' },
@@ -21,6 +23,7 @@ function formatLastCounted(updatedAt, updatedByName) {
     const d = new Date(updatedAt);
     if (!Number.isNaN(d.getTime())) {
       when = d.toLocaleString('de-DE', {
+        timeZone: TIMEZONE,
         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
       });
     }
@@ -146,8 +149,7 @@ async function buildExcelWorkbook(rows, meta = {}) {
   return workbook;
 }
 
-function buildPdfDocument(rows, meta = {}) {
-  const doc = new PDFDocument({ margin: 40, size: 'A4' });
+function renderPdfInto(doc, rows, meta = {}) {
   const pageLeft  = 40;
   const pageWidth = doc.page.width - 80;
   const colX = {
@@ -249,12 +251,37 @@ function buildPdfDocument(rows, meta = {}) {
   doc.text(`Gesamtbestand: ${grandStock}`, pageLeft, doc.y);
 
   doc.end();
+}
+
+function buildPdfDocument(rows, meta = {}) {
+  const doc = new PDFDocument({ margin: 40, size: 'A4' });
+  renderPdfInto(doc, rows, meta);
   return doc;
+}
+
+/**
+ * Erzeugt das PDF vollständig im Speicher, mit Error-Listener VOR dem Schreiben.
+ * Verhindert unbehandelte Stream-Fehler und abgeschnittene Downloads nach HTTP 200 (BUG-002).
+ */
+function buildPdfBuffer(rows, meta = {}) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    const chunks = [];
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+    try {
+      renderPdfInto(doc, rows, meta);
+    } catch (err) {
+      reject(err);
+    }
+  });
 }
 
 module.exports = {
   normalizeFromLiveProducts,
   normalizeFromSnapshot,
   buildExcelWorkbook,
-  buildPdfDocument
+  buildPdfDocument,
+  buildPdfBuffer
 };

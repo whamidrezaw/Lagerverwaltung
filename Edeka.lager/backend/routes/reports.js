@@ -11,7 +11,7 @@ const {
   normalizeFromLiveProducts,
   normalizeFromSnapshot,
   buildExcelWorkbook,
-  buildPdfDocument
+  buildPdfBuffer
 } = require('../services/exportBuilder');
 const { roundStock } = require('../lib/validate');
 
@@ -322,20 +322,20 @@ router.get('/export', auth, require('../lib/limits').exportJeBenutzer, async (re
     const log = await DailyLog.findById(logId);
     if (!log) return res.status(404).json({ message: 'Bericht nicht gefunden' });
     rows = normalizeFromSnapshot(log.snapshot);
-    subtitle = `${log.date} · ${new Date(log.sentAt).toLocaleString('de-DE')}`;
+    subtitle = `${log.date} · ${new Date(log.sentAt).toLocaleString('de-DE', { timeZone: 'Europe/Berlin' })}`;
     filenameDate = log.date;
   } else if (date) {
     const logs = await DailyLog.find({ date }).sort({ sentAt: -1 });
     if (logs.length === 0) return res.status(404).json({ message: 'Keine Daten für dieses Datum gefunden' });
     const rep = logs.find(l => l.type === 'auto-midnight') || logs[0];
     rows = normalizeFromSnapshot(rep.snapshot);
-    subtitle = `${date} · Stand ${new Date(rep.sentAt).toLocaleString('de-DE')}`;
+    subtitle = `${date} · Stand ${new Date(rep.sentAt).toLocaleString('de-DE', { timeZone: 'Europe/Berlin' })}`;
     filenameDate = date;
   } else {
     const products = await Product.find({ isActive: true });
     if (products.length === 0) return res.status(404).json({ message: 'Keine Produkte vorhanden' });
     rows = normalizeFromLiveProducts(products);
-    subtitle = `Live-Stand · ${new Date().toLocaleString('de-DE')}`;
+    subtitle = `Live-Stand · ${new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' })}`;
     filenameDate = berlinDateString(new Date());
   }
 
@@ -343,16 +343,16 @@ router.get('/export', auth, require('../lib/limits').exportJeBenutzer, async (re
 
   if (type === 'excel') {
     const workbook = await buildExcelWorkbook(rows, { subtitle, sheetName: safeFilenameDate });
+    const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=EDEKA_Lager_${safeFilenameDate}.xlsx`);
-    await workbook.xlsx.write(res);
-    return res.end();
+    return res.send(buffer);
   }
 
+  const pdfBuffer = await buildPdfBuffer(rows, { subtitle });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename=EDEKA_Lager_${safeFilenameDate}.pdf`);
-  const doc = buildPdfDocument(rows, { subtitle });
-  doc.pipe(res);
+  return res.send(pdfBuffer);
 });
 
 // ── POST /api/reports/reset-stock ───────────────────────────────
