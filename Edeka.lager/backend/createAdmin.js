@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const bcrypt   = require('bcryptjs');
 const User     = require('./models/User');
 
-const { parseUsername } = require('./lib/validate');
+const { parseUsername, parsePassword } = require('./lib/validate');
 
 async function createAdmin() {
   // FIX #7: رمز از argument یا .env — hardcode نیست
@@ -22,8 +22,8 @@ async function createAdmin() {
     process.exit(1);
   }
 
-  if (password.length < 8) {
-    console.error('❌ Passwort muss mindestens 8 Zeichen haben');
+  if (!parsePassword(password, { minLength: 8, maxLength: 128 })) {
+    console.error('❌ Passwort muss zwischen 8 und 128 Zeichen haben');
     process.exit(1);
   }
 

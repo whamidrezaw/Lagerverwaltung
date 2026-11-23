@@ -88,3 +88,11 @@ test('BUG-002: bei bereits gesendeten Headern wird an next(err) delegiert statt 
   assert.equal(res.code, null);
   assert.equal(res.body, null);
 });
+
+test('SEC-003: auch 502/503 werden in production maskiert statt interne Details preiszugeben', () => {
+  const err = Object.assign(new Error('Upstream mongodb://secret:27017 down'), { status: 503 });
+  const { res, log } = lauf('production', err);
+  assert.equal(res.code, 503);
+  assert.deepEqual(res.body, { message: 'Interner Serverfehler' });
+  assert.equal(log.length, 1);
+});

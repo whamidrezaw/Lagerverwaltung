@@ -68,5 +68,13 @@ const sendNowJeBenutzer = jeBenutzer('send-now', 10,
   'Zu viele Berichte in kurzer Zeit. Bitte eine Minute warten.');
 const exportJeBenutzer  = jeBenutzer('export', 10,
   'Zu viele Exporte in kurzer Zeit. Bitte eine Minute warten.');
+const changePasswordJeBenutzer = jeBenutzer('change-password', 10,
+  'Zu viele Passwortänderungen in kurzer Zeit. Bitte eine Minute warten.');
 
-module.exports = { loginJeName, loginJeIp, sendNowJeBenutzer, exportJeBenutzer };
+module.exports = {
+  loginJeName,
+  loginJeIp,
+  sendNowJeBenutzer,
+  exportJeBenutzer,
+  changePasswordJeBenutzer
+};

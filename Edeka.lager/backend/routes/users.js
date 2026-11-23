@@ -109,6 +109,12 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
   ) {
     return res.status(400).json({ message: 'Sie können Ihre eigene Admin-Rolle nicht selbst entfernen. Lassen Sie das einen anderen Admin tun.' });
   }
+  if (
+    req.params.id === req.user._id.toString() &&
+    updates.isActive === false
+  ) {
+    return res.status(400).json({ message: 'Sie können Ihr eigenes Konto nicht selbst deaktivieren.' });
+  }
 
   const user = await User.findByIdAndUpdate(
     req.params.id,

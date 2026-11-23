@@ -196,6 +196,7 @@ function openCreateModal() {
   document.getElementById('f-role').disabled = false;
   document.getElementById('f-role-hint').style.display = 'none';
   document.getElementById('f-active').value = 'true';
+  document.getElementById('f-active').disabled = false;
   document.getElementById('f-username').disabled = false;
   document.getElementById('f-pass-group').style.display = '';
   document.getElementById('f-reset-section').style.display = 'none';
@@ -219,6 +220,7 @@ function openEditModal(uid) {
   document.getElementById('f-role').disabled = editingSelf;
   document.getElementById('f-role-hint').style.display = editingSelf ? '' : 'none';
   document.getElementById('f-active').value = String(u.isActive !== false);
+  document.getElementById('f-active').disabled = editingSelf;
   document.getElementById('f-telegram').value = u.telegramChatId || '';
   document.getElementById('f-pass-group').style.display = 'none';
   document.getElementById('f-reset-section').style.display = '';
@@ -239,9 +241,11 @@ async function saveUser() {
     if (editingId) {
       const payload = {
         name: document.getElementById('f-name').value.trim(),
-        isActive: document.getElementById('f-active').value === 'true',
         telegramChatId: document.getElementById('f-telegram').value.trim() || null
       };
+      if (!document.getElementById('f-active').disabled) {
+        payload.isActive = document.getElementById('f-active').value === 'true';
+      }
       if (!document.getElementById('f-role').disabled) {
         payload.role = document.getElementById('f-role').value;
       }
@@ -344,7 +348,11 @@ document.addEventListener('click', e => {
 });
 
 /* ── INIT ── */
-loadUsers();
+if (currentUser.role !== 'admin') {
+  window.location.href = 'dashboard.html';
+} else {
+  loadUsers();
+}
 
 // ── Aktionen (Phase F, Schritt B2) ───────────────────────────────
 registriereAktionen({

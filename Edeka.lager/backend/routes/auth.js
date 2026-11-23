@@ -23,7 +23,11 @@ const { parseUsername, parsePassword, parseNonEmptyString, normalizeIp, parseRol
 // geprüft: test/integration/login-limit-order.test.js.
 //
 // index.html wartet weiterhin auf 429 mit derselben Meldung.
-const { loginJeName, loginJeIp } = require('../lib/limits');
+const { loginJeName, loginJeIp, changePasswordJeBenutzer } = require('../lib/limits');
+
+// SEC-004: Gültiger Bcrypt-Hash (Kostenfaktor 12) für konstante Antwortzeit
+// bei unbekannten oder deaktivierten Konten (Schutz vor Benutzer-Enumeration).
+const DUMMY_BCRYPT_HASH = '$2b$12$x5iy2zleUE3wF6WNVmXfa.3NREBYKUV2YCLF6CdqeeZeIStpn3.Yi';
 
 // یک IP که ظاهر IPv4/IPv6 معتبر ندارد ذخیره نمی‌شود — هدف جلوگیری از این
 // است که یک مقدار جعلی/دستکاری‌شده بعداً در پنل «Login-Verlauf» رندر شود
@@ -97,7 +101,8 @@ router.post('/login', loginJeName, loginJeIp, async (req, res) => {
   const userAgent = String(req.headers['user-agent'] || '').slice(0, 300);
 
   const user = await User.findOne({ username: cleanUser });
-  if (!user || !user.isActive)
+  if (!user || !user.isActive) {
+    await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
     return res.status(401).json({
       message: 'Benutzername oder Passwort falsch',
       // Kennzeichnet einen Fehler bei den ZUGANGSDATEN, nicht bei der
@@ -105,6 +110,7 @@ router.post('/login', loginJeName, loginJeIp, async (req, res) => {
       // 401 nicht ab — ein Tippfehler soll niemanden aus dem System werfen.
       code: 'BAD_CREDENTIALS'
     });
+  }
 
   const valid = await bcrypt.compare(password, user.password);
   if (!valid)
@@ -145,7 +151,7 @@ router.get('/me', auth, async (req, res) => {
 });
 
 // PUT /api/auth/change-password  — تغییر رمز توسط کاربر خودش
-router.put('/change-password', auth, async (req, res) => {
+router.put('/change-password', auth, changePasswordJeBenutzer, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   if (typeof currentPassword !== 'string' || currentPassword.length === 0)

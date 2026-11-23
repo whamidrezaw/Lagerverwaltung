@@ -42,7 +42,7 @@ function fehlerbehandlung(err, req, res, next) {
   }
 
   res.status(status).json({
-    message: (status === 500 && process.env.NODE_ENV === 'production')
+    message: (status >= 500 && process.env.NODE_ENV === 'production')
       ? 'Interner Serverfehler'
       : message
   });

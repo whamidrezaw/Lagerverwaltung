@@ -79,7 +79,7 @@ router.get('/today', auth, async (req, res) => {
     productCount:  l.snapshot.length
   }));
 
-  res.json({ date: dateStr, reports });
+  res.json({ date: dateStr, telegramConfigured: telegramEingerichtet(), reports });
 });
 
 // ── GET /api/reports/analytics?days=14 ───────────────────────────
@@ -226,7 +226,14 @@ router.post('/send-now', auth, require('../lib/limits').sendNowJeBenutzer, async
       await sendTelegram(buildTelegramText(products, { liveOnly: true }));
       reportSent = true;
     } catch (err) {
-      telegramError = err.message;
+      console.error('[TELEGRAM] Versand fehlgeschlagen:', err.message);
+      if (process.env.NODE_ENV === 'production') {
+        telegramError = /^Telegram-(Zeitüberschreitung|Fehler \(\d+\))/.test(err.message || '')
+          ? err.message
+          : 'Telegram-Dienst nicht erreichbar';
+      } else {
+        telegramError = err.message;
+      }
     }
   }
 
@@ -427,12 +434,11 @@ router.post('/reset-logs', auth, async (req, res) => {
       }
       filter = { date: gutesDatum };
     }
-  } else if (scope === 'weekly') {
-    const since = new Date(); since.setDate(since.getDate() - 7);
-    filter = { date: { $gte: berlinDateString(since) } };
-  } else if (scope === 'monthly') {
-    const since = new Date(); since.setDate(since.getDate() - 30);
-    filter = { date: { $gte: berlinDateString(since) } };
+  } else if (scope === 'weekly' || scope === 'monthly') {
+    const [y, m, d] = todayStr.split('-').map(Number);
+    const offsetDays = scope === 'weekly' ? 7 : 30;
+    const sinceNoonUtc = new Date(Date.UTC(y, m - 1, d - offsetDays, 12));
+    filter = { date: { $gte: berlinDateString(sinceNoonUtc) } };
   } else if (scope === 'all') {
     filter = {};
   } else {

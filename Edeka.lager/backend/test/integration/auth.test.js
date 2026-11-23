@@ -132,3 +132,15 @@ test('POST und PUT /api/users prüfen role und normalisieren leere telegramChatI
   });
   assert.equal(badPutRole.status, 400);
 });
+
+test('SEC-002: Admin kann das eigene Konto über PUT /api/users/:id nicht selbst deaktivieren', async () => {
+  const admin = await makeUser({ username: 'chef_self', role: 'admin' });
+  const { token } = await login('chef_self');
+
+  const selfDeact = await req(`/api/users/${admin._id}`, {
+    method: 'PUT',
+    token,
+    body: { isActive: false }
+  });
+  assert.equal(selfDeact.status, 400);
+});

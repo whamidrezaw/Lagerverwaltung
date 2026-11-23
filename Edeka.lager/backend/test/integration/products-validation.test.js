@@ -163,3 +163,27 @@ test('GET /api/products/activity liefert Server-seitiges Aktivitäts-Protokoll v
   assert.ok(alt);
   assert.equal(alt.updatedByName || '', '');
 });
+
+test('BUG-001: deaktiviertes Produkt (isActive: false) kann weder per PUT noch per PATCH /stock geändert werden', async () => {
+  const token = await makeAdminToken();
+  const created = await req('/api/products', {
+    method: 'POST', token,
+    body: { ...base, name: 'Kirsche', currentStock: 5 }
+  });
+  assert.equal(created.status, 201);
+  const prod = created.body;
+
+  assert.equal((await req(`/api/products/${prod._id}`, { method: 'DELETE', token })).status, 200);
+
+  const rPut = await req(`/api/products/${prod._id}`, {
+    method: 'PUT', token,
+    body: { name: 'Kirsche Neu' }
+  });
+  assert.equal(rPut.status, 404);
+
+  const rPatch = await req(`/api/products/${prod._id}/stock`, {
+    method: 'PATCH', token,
+    body: { currentStock: 9, updatedAt: prod.updatedAt }
+  });
+  assert.equal(rPatch.status, 404);
+});

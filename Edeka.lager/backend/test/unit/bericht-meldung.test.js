@@ -61,3 +61,10 @@ test('FE-005: Doppelklick auf sendReportNow sendet nur eine Anfrage und gibt Spe
   aufloesen();
   await p3;
 });
+
+test('FE-001: downloadReportFile meldet bei 401 sauber ab (logout)', async () => {
+  const b = ladeShared({ token: 'x', fetchStub: async () => antwort(401, { message: 'Token abgelaufen' }) });
+  await b.sandbox.downloadReportFile('pdf', {});
+  assert.equal(b.sandbox.sessionStorage.getItem('token'), null, 'Token muss bei 401 im Export gelöscht werden');
+  assert.ok(b.navigationen.length > 0 && /index\.html/.test(b.navigationen[0]));
+});

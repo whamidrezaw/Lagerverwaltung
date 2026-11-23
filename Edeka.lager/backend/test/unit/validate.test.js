@@ -42,6 +42,9 @@ test('parseStock lehnt genau die Werte ab, die vorher durchgerutscht sind', () =
   assert.equal(parseStock(-1),      null);
   assert.equal(parseStock(Infinity),null);
   assert.equal(parseStock(NaN),     null);
+  assert.equal(parseStock(1e306),   null, 'BUG-004: Überlauf zu Infinity muss abgelehnt werden');
+  assert.equal(parseStock(1000001), null, 'BUG-004: Wert über Obergrenze muss abgelehnt werden');
+  assert.equal(parseStock(1000000), 1000000);
 });
 
 test('normalizeIp führt IPv4-mapped auf reine IPv4 zurück', () => {
@@ -130,6 +133,8 @@ test('parseUsername normalisiert Groß-/Kleinschreibung und Randleerzeichen', ()
   assert.equal(parseUsername('   '), null);
   assert.equal(parseUsername(['anna']), null);
   assert.equal(parseUsername(null), null);
+  assert.equal(parseUsername('a'.repeat(60)), 'a'.repeat(60));
+  assert.equal(parseUsername('a'.repeat(61)), null, 'PAR-001: maxLength 60 passend zu User-Schema');
   assert.equal(parseUsername('a'.repeat(101)), null);
 });
 
@@ -204,6 +209,7 @@ test('parseTelegramChatId normalisiert Leerstrings zu null und weist Ungültiges
   assert.equal(parseTelegramChatId('  -100123456789  '), '-100123456789');
   assert.equal(parseTelegramChatId(123456789), '123456789');
   assert.equal(parseTelegramChatId('mit leerzeichen innen'), undefined);
+  assert.equal(parseTelegramChatId('@kanal'), undefined, 'PAR-001: nicht-numerische Chat-IDs passend zu User-Schema ablehnen');
   assert.equal(parseTelegramChatId(['12345']), undefined);
   assert.equal(parseTelegramChatId({}), undefined);
   assert.equal(parseTelegramChatId('x'.repeat(65)), undefined);
