@@ -49,7 +49,7 @@ case "$REPO" in
   git@*|ssh://*)
     KEY="${EXTERN_SSH_KEY:-}"
     [ -n "$KEY" ] && [ -r "$KEY" ] || fehler "Deploy-Key nicht lesbar: '${KEY}'"
-    export GIT_SSH_COMMAND="ssh -i $KEY -o IdentitiesOnly=yes -o BatchMode=yes"
+    export GIT_SSH_COMMAND="ssh -i '$KEY' -o IdentitiesOnly=yes -o BatchMode=yes"
     ;;
 esac
 G() { git -C "$ARBEIT" -c user.name="EDEKA Sicherung" -c user.email="sicherung@localhost" "$@"; }

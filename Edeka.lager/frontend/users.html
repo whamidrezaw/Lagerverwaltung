@@ -84,7 +84,7 @@
 <div class="main-area">
   <header class="topbar">
     <div class="topbar-left">
-      <button class="menu-toggle" data-action="seitenleisteUmschalten">☰</button>
+      <button type="button" class="menu-toggle" data-action="seitenleisteUmschalten" aria-label="Menü umschalten">☰</button>
       <div>
         <div class="topbar-title">👥 Benutzerverwaltung</div>
         <div class="topbar-date" id="topbar-date"></div>
@@ -95,8 +95,8 @@
         <input class="search-input" type="search" id="search-input"
           placeholder="Benutzer suchen…" data-benutzersuche>
       </div>
-      <button class="btn btn-yellow" data-action="benutzerNeu">＋ Neuer Benutzer</button>
-      <button class="icon-btn" data-action="themaWechseln" title="Theme wechseln">🌓</button>
+      <button type="button" class="btn btn-yellow" data-action="benutzerNeu">＋ Neuer Benutzer</button>
+      <button type="button" class="icon-btn" data-action="themaWechseln" title="Theme wechseln" aria-label="Theme wechseln">🌓</button>
     </div>
   </header>
 
@@ -184,23 +184,23 @@
 
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Name</label>
+        <label class="form-label" for="f-name">Name</label>
         <input class="form-ctrl" id="f-name" type="text" placeholder="Max Mustermann">
       </div>
       <div class="form-group">
-        <label class="form-label">Benutzername</label>
+        <label class="form-label" for="f-username">Benutzername</label>
         <input class="form-ctrl" id="f-username" type="text" placeholder="max.mustermann">
       </div>
     </div>
 
     <div class="form-group" id="f-pass-group">
-      <label class="form-label">Passwort</label>
+      <label class="form-label" for="f-password">Passwort</label>
       <input class="form-ctrl" id="f-password" type="password" placeholder="Mindestens 6 Zeichen">
     </div>
 
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Rolle</label>
+        <label class="form-label" for="f-role">Rolle</label>
         <select class="form-ctrl" id="f-role">
           <option value="lagerist">Lagerist</option>
           <option value="admin">Administrator</option>
@@ -208,7 +208,7 @@
         <div class="pass-hint" id="f-role-hint" style="display:none">Sie können Ihre eigene Rolle nicht ändern.</div>
       </div>
       <div class="form-group">
-        <label class="form-label">Status</label>
+        <label class="form-label" for="f-active">Status</label>
         <select class="form-ctrl" id="f-active">
           <option value="true">Aktiv</option>
           <option value="false">Deaktiviert</option>
@@ -217,7 +217,7 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">Telegram Chat-ID</label>
+      <label class="form-label" for="f-telegram">Telegram Chat-ID</label>
       <input class="form-ctrl" id="f-telegram" type="text" placeholder="Optional — z.B. 123456789">
     </div>
 
@@ -225,7 +225,7 @@
     <div id="f-reset-section" style="display:none">
       <hr class="section-sep">
       <div class="form-group">
-        <label class="form-label" style="color:var(--color-warning)">Neues Passwort</label>
+        <label class="form-label" for="f-newpass" style="color:var(--color-warning)">Neues Passwort</label>
         <input class="form-ctrl" id="f-newpass" type="password" placeholder="Leer lassen = nicht ändern">
         <div class="pass-hint">Nur ausfüllen, wenn das Passwort geändert werden soll.</div>
       </div>

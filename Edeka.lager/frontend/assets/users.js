@@ -132,8 +132,8 @@ function renderTable(users) {
       </td>
       <td style="font-size:12px">${u.lastLogin ? fmtRelative(u.lastLogin) : '<span style="color:var(--color-text-faint)">Nie</span>'}</td>
       <td>
-        <button class="btn btn-ghost" style="padding:5px 10px;font-size:12px"
-          data-action="protokollOeffnen" data-id="${escapeHtml(u._id)}" ${cnt === 0 ? 'disabled style="opacity:0.4"' : ''}>
+        <button class="btn btn-ghost" style="padding:5px 10px;font-size:12px${cnt === 0 ? ';opacity:0.4' : ''}"
+          data-action="protokollOeffnen" data-id="${escapeHtml(u._id)}" ${cnt === 0 ? 'disabled' : ''}>
           ${cnt} Einträge
         </button>
       </td>

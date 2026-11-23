@@ -93,7 +93,8 @@ pruefe "Kopie außer Haus enthält ${JUENGSTE:-die jüngste Sicherung}" extern_h
 extern_gleich() {
   local key dort
   key=$(sudo sed -n 's/^EXTERN_SSH_KEY=//p' "$EXTERN_KONF")
-  dort=$(GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o BatchMode=yes" git -C "$EXTERN" ls-remote origin refs/heads/main | cut -f1)
+  key="${key%\"}"; key="${key#\"}"; key="${key%\'}"; key="${key#\'}"
+  dort=$(GIT_SSH_COMMAND="ssh -i '$key' -o IdentitiesOnly=yes -o BatchMode=yes" git -C "$EXTERN" ls-remote origin refs/heads/main | cut -f1)
   [ -n "$dort" ] && [ "$dort" = "$(git -C "$EXTERN" rev-parse HEAD)" ]
 }
 pruefe "GitHub zeigt denselben Stand der Kopie" extern_gleich

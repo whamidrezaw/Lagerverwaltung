@@ -182,7 +182,6 @@ function senken(src, datei) {
 }
 
 test('der Prüfer selbst: er erkennt Rohdaten auch auf Umwegen', () => {
-  /* eslint-disable no-template-curly-in-string */
   const faelle = [
     ['el.innerHTML = `<b>${p.name}</b>`;', 1],
     ['const x = `${fmtNum(v)} ${u}`; function f(u, v) {} el.innerHTML = `<i>${x}</i>`;', 1],
@@ -192,7 +191,6 @@ test('der Prüfer selbst: er erkennt Rohdaten auch auf Umwegen', () => {
     ['function zeile(u) { return `<td>${u.name}</td>`; } el.innerHTML = zeile(x);', 1],
     ['el.insertAdjacentHTML("beforeend", `<p>${msg}</p>`);', 1]
   ];
-  /* eslint-enable no-template-curly-in-string */
   for (const [code, soll] of faelle) {
     const { funde } = senken(code, 'probe.js');
     assert.equal(funde.length, soll, `${soll} erwartet, ${funde.length} gefunden: ${code}`);
