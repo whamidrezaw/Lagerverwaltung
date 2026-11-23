@@ -14,6 +14,12 @@ set -euo pipefail
 KONF="${KONF:-/etc/edeka/duckdns.env}"
 URL="${DUCKDNS_URL:-https://www.duckdns.org/update}"
 
+# Standard-Konfiguration nur laden, wenn sie root gehört (analog zu alarm.sh)
+if [ "$KONF" = "/etc/edeka/duckdns.env" ] && [ "$(stat -c %U "$KONF" 2>/dev/null || true)" != "root" ]; then
+  echo "✗ $KONF gehört nicht root — Abbruch" >&2
+  exit 1
+fi
+
 # shellcheck disable=SC1090
 . "$KONF"
 [ -n "${DUCKDNS_DOMAIN:-}" ] && [ -n "${DUCKDNS_TOKEN:-}" ] || { echo "✗ $KONF unvollständig" >&2; exit 1; }

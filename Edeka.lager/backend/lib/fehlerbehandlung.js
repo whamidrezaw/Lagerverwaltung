@@ -13,6 +13,11 @@
 // Ohne den vierten Parameter ist das hier eine ganz normale Middleware
 // und Fehler laufen stumm daran vorbei.
 function fehlerbehandlung(err, req, res, next) {
+  // BUG-002: Wenn Header bereits gesendet wurden, an Express delegieren statt ERR_HTTP_HEADERS_SENT
+  if (res.headersSent) {
+    return next(err);
+  }
+
   let status = err.status || err.statusCode || 500;
   let message = err.message || 'Interner Serverfehler';
 
@@ -37,7 +42,7 @@ function fehlerbehandlung(err, req, res, next) {
   }
 
   res.status(status).json({
-    message: (status === 500 && process.env.NODE_ENV === 'production')
+    message: (status >= 500 && process.env.NODE_ENV === 'production')
       ? 'Interner Serverfehler'
       : message
   });

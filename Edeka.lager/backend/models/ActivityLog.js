@@ -31,8 +31,8 @@ const activityLogSchema = new mongoose.Schema({
   createdAt:   { type: Date, default: Date.now }
 });
 
-// Schnelle Abfrage der jüngsten Einträge + automatische Löschung nach 90 Tagen (TTL)
-activityLogSchema.index({ createdAt: -1 });
+// Automatische Löschung nach 90 Tagen (TTL); MongoDB nutzt den Einzel-Index
+// auch rückwärts für sort({ createdAt: -1 }) ohne doppelten Index-Overhead (PERF-001).
 activityLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 module.exports = mongoose.model('ActivityLog', activityLogSchema);

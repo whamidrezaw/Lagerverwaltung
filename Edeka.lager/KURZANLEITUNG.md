@@ -94,7 +94,8 @@ neue Passwörter setzt immer ein Administrator.
 „Deaktiviert“ setzen, statt „Endgültig löschen“. Wer deaktiviert ist, kann sich
 nicht mehr anmelden; das Konto lässt sich später wieder auf „Aktiv“ setzen.
 
-**Nur für Administratoren:** Produkte löschen (🗑️), Kategorien und Einheiten
+**Nur für Administratoren:** Produkte endgültig löschen, Kategorien und Einheiten
 ändern oder löschen, „🔄 Alle Bestände auf 0 setzen“, Logs löschen und
-„🌙 Gestern manuell abschließen“. Diese Werkzeuge stehen hinter „⚙️“ und fragen
-vor dem Ausführen mit „Bestätigen“ nach.
+„🌙 Gestern manuell abschließen“ (Produkte vorübergehend aus der Liste entfernen
+über 🗑️ dürfen alle angemeldeten Mitarbeitenden). Diese Werkzeuge stehen hinter
+„⚙️“ und fragen vor dem Ausführen mit „Bestätigen“ nach.

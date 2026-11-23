@@ -1,7 +1,7 @@
 'use strict';
 const test   = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeFromLiveProducts, normalizeFromSnapshot, buildExcelWorkbook } = require('../../services/exportBuilder');
+const { normalizeFromLiveProducts, normalizeFromSnapshot, buildExcelWorkbook, buildPdfBuffer } = require('../../services/exportBuilder');
 
 // Beide Funktionen speisen dieselben Excel-/PDF-Bauer. Weichen ihre
 // Zeilenformen voneinander ab, sieht ein Live-Export anders aus als der
@@ -69,4 +69,23 @@ test('buildExcelWorkbook enthält nur Aktueller Bestand + Zuletzt gezählt ohne 
   assert.ok(texte.includes('Zuletzt gezählt'));
   assert.ok(!texte.includes('Verbrauch'), 'Verbrauch-Spalte muss im Live-Export ausgeblendet sein');
   assert.ok(!texte.some(t => t.includes('undefined') || t.includes('null')), 'Null/undefined darf nie gedruckt werden');
+});
+
+test('BUG-002: buildPdfBuffer erzeugt einen vollständigen PDF-Buffer', async () => {
+  const rows = normalizeFromLiveProducts([
+    { name: 'Äpfel', emoji: '🍎', category: 'Obst', unit: 'Kiste', isBio: true, currentStock: 5, yesterdayStock: 7 }
+  ]);
+  const buf = await buildPdfBuffer(rows, { subtitle: 'Test' });
+  assert.ok(Buffer.isBuffer(buf));
+  assert.ok(buf.length > 100);
+  assert.equal(buf.subarray(0, 5).toString('ascii'), '%PDF-');
+});
+
+test('BUG-003: formatLastCounted nutzt immer Europe/Berlin statt Server-UTC', () => {
+  // 2026-07-15 22:30 UTC entspricht 2026-07-16 00:30 MESZ (Europe/Berlin)
+  const [row] = normalizeFromLiveProducts([
+    { name: 'Salat', currentStock: 3, updatedAt: '2026-07-15T22:30:00.000Z', updatedByName: 'Anna' }
+  ]);
+  assert.match(row.lastCounted, /16\.07\./);
+  assert.match(row.lastCounted, /00:30/);
 });

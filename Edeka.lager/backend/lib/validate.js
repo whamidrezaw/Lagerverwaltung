@@ -42,15 +42,21 @@ function roundStock(value) {
  * ist 5. Ohne diese Prüfung setzt ein leeres Array den Bestand still auf 0 —
  * so war es vor Batch A, und genau das hat der Test aufgedeckt.
  */
+const MAX_STOCK = 1_000_000;
+
 function parseStock(value) {
   if (typeof value === 'number') {
-    return Number.isFinite(value) && value >= 0 ? roundStock(value) : null;
+    if (!Number.isFinite(value) || value < 0 || value > MAX_STOCK) return null;
+    const rounded = roundStock(value);
+    return Number.isFinite(rounded) ? rounded : null;
   }
   if (typeof value === 'string') {
     const s = value.trim();
     if (!/^\d+([.,]\d+)?$/.test(s)) return null;
     const n = Number(s.replace(',', '.'));
-    return Number.isFinite(n) && n >= 0 ? roundStock(n) : null;
+    if (!Number.isFinite(n) || n < 0 || n > MAX_STOCK) return null;
+    const rounded = roundStock(n);
+    return Number.isFinite(rounded) ? rounded : null;
   }
   return null;
 }
@@ -172,7 +178,7 @@ function parseNonEmptyString(value, { maxLength = 200 } = {}) {
  * denselben Namen bereits kleinschrieb und trimmte.
  */
 function parseUsername(value) {
-  const s = parseNonEmptyString(value, { maxLength: 100 });
+  const s = parseNonEmptyString(value, { maxLength: 60 });
   return s ? s.toLowerCase() : null;
 }
 
@@ -226,10 +232,10 @@ function parseRole(value, { defaultRole = null } = {}) {
 }
 
 /**
- * Telegram-Chat-ID normalisieren und prüfen.
+ * Telegram-Chat-ID normalisieren und prüfen (paritätisch zu models/User.js).
  * - null / undefined / "" / "   " → null (kein Chat hinterlegt)
- * - gültiger String oder Zahl (z. B. "-100123456789" oder "@kanal", max. 64 Zeichen) → getrimmter String
- * - ungültiger Typ (Array, Objekt, Boolean) oder zu lang → undefined (Fehler 400)
+ * - numerischer String oder Ganzzahl (z. B. "-100123456789", max. 64 Zeichen) → getrimmter String
+ * - ungültiger Typ oder nicht-numerisch → undefined (Fehler 400)
  */
 function parseTelegramChatId(value) {
   if (value === undefined || value === null) return null;
@@ -240,7 +246,7 @@ function parseTelegramChatId(value) {
   if (typeof value === 'string') {
     const s = value.trim();
     if (s === '') return null;
-    if (s.length > 64 || /[\s\0-\x1F\x7F]/.test(s)) return undefined;
+    if (s.length > 64 || !/^-?\d+$/.test(s)) return undefined;
     return s;
   }
   return undefined;

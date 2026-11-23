@@ -215,8 +215,8 @@ router.put('/:id', auth, async (req, res, next) => {
     updates.updatedBy     = req.user._id;
     updates.updatedByName = userName;
 
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
+    const product = await Product.findOneAndUpdate(
+      { _id: req.params.id, isActive: true },
       updates,
       { returnDocument: 'after', runValidators: true }
     );
@@ -279,7 +279,7 @@ router.patch('/:id/stock', auth, async (req, res) => {
     return res.status(400).json({ message: 'Ungültiger Wert für updatedAt.', code: 'VERSION_REQUIRED' });
   }
 
-  const vorStand = await Product.findById(req.params.id).select('currentStock').lean();
+  const vorStand = await Product.findOne({ _id: req.params.id, isActive: true }).select('currentStock').lean();
   if (!vorStand) return res.status(404).json({ message: 'Produkt nicht gefunden' });
 
   const userName = benutzerAnzeigename(req.user);
@@ -288,7 +288,7 @@ router.patch('/:id/stock', auth, async (req, res) => {
   // Lesen und Schreiben passte sonst genau der Konflikt, den wir hier
   // verhindern wollen.
   const product = await Product.findOneAndUpdate(
-    { _id: req.params.id, updatedAt: erwartet },
+    { _id: req.params.id, isActive: true, updatedAt: erwartet },
     { currentStock: wert, updatedBy: req.user._id, updatedByName: userName },
     { returnDocument: 'after', runValidators: true }
   );
@@ -312,7 +312,7 @@ router.patch('/:id/stock', auth, async (req, res) => {
 
   // Kein Treffer heißt zweierlei: das Produkt gibt es nicht, oder
   // jemand war schneller. Die Fälle müssen unterschieden werden.
-  const aktuell = await Product.findById(req.params.id).lean();
+  const aktuell = await Product.findOne({ _id: req.params.id, isActive: true }).lean();
   if (!aktuell) return res.status(404).json({ message: 'Produkt nicht gefunden' });
 
   // Der aktuelle Stand geht mit: ohne ihn kann der Aufrufer nur

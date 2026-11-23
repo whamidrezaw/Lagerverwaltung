@@ -109,6 +109,12 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
   ) {
     return res.status(400).json({ message: 'Sie können Ihre eigene Admin-Rolle nicht selbst entfernen. Lassen Sie das einen anderen Admin tun.' });
   }
+  if (
+    req.params.id === req.user._id.toString() &&
+    updates.isActive === false
+  ) {
+    return res.status(400).json({ message: 'Sie können Ihr eigenes Konto nicht selbst deaktivieren.' });
+  }
 
   const user = await User.findByIdAndUpdate(
     req.params.id,
@@ -127,7 +133,10 @@ router.put('/:id/reset-password', auth, adminOnly, async (req, res) => {
     return res.status(400).json({ message: 'Passwort mindestens 6 Zeichen' });
 
   const hashed = await bcrypt.hash(newPassword, 12);
-  const user   = await User.findByIdAndUpdate(req.params.id, { password: hashed });
+  const user   = await User.findByIdAndUpdate(req.params.id, {
+    $set: { password: hashed },
+    $inc: { tokenVersion: 1 }
+  });
   if (!user) return res.status(404).json({ message: 'Benutzer nicht gefunden' });
   if (typeof auth.invalidateUserCache === 'function') auth.invalidateUserCache(req.params.id);
   res.json({ message: '✅ Passwort zurückgesetzt' });

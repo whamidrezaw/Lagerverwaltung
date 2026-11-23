@@ -48,7 +48,7 @@ async function loadToday() {
         <div class="report-time">${fmtTime(r.sentAt)}</div>
         <div class="report-meta">
           📦 ${fmtNum(r.totalStock)} Gesamtbestand · ${escapeHtml(r.productCount)} Artikel
-          ${r.reportSent ? '' : ' · <span style="color:var(--color-error)">Telegram fehlgeschlagen</span>'}
+          ${(data.telegramConfigured && r.type === 'manual' && !r.reportSent) ? ' · <span style="color:var(--color-error)">Telegram fehlgeschlagen</span>' : ''}
         </div>
         <div class="report-acts">
           <button class="row-act" title="Excel" data-action="exportBericht" data-typ="excel" data-log-id="${escapeHtml(r._id)}">📊</button>

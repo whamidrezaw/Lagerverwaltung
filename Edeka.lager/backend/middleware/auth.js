@@ -7,7 +7,8 @@ const User = require('../models/User');
 // Datenbankabfragen für denselben Benutzer, wird bei Änderungen in
 // routes/users.js sofort geleert und bleibt in Tests (NODE_ENV=test)
 // aus, damit direkte DB-Schreibzugriffe in Tests ohne Verzögerung wirken.
-const AUTH_CACHE_TTL_MS = 5000;
+const AUTH_CACHE_TTL_MS   = 5000;
+const AUTH_CACHE_MAX_SIZE = 500;
 const _userCache = new Map();
 
 function invalidateUserCache(userId) {
@@ -21,15 +22,23 @@ function invalidateUserCache(userId) {
 async function loadUserById(id) {
   const key = String(id);
   const useCache = process.env.NODE_ENV !== 'test';
+  const now = Date.now();
   if (useCache) {
     const cached = _userCache.get(key);
-    if (cached && cached.expiresAt > Date.now()) {
+    if (cached && cached.expiresAt > now) {
       return cached.user;
     }
+    if (cached) _userCache.delete(key);
   }
   const user = await User.findById(id).select('-password -loginHistory');
   if (useCache && user) {
-    _userCache.set(key, { user, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
+    if (_userCache.size >= AUTH_CACHE_MAX_SIZE) {
+      for (const [k, v] of _userCache.entries()) {
+        if (v.expiresAt <= now) _userCache.delete(k);
+      }
+      if (_userCache.size >= AUTH_CACHE_MAX_SIZE) _userCache.clear();
+    }
+    _userCache.set(key, { user, expiresAt: now + AUTH_CACHE_TTL_MS });
   } else if (useCache) {
     _userCache.delete(key);
   }
@@ -64,6 +73,10 @@ const authMiddleware = async (req, res, next) => {
     // FIX #2: deaktivierte Benutzer blockieren
     if (!user.isActive)
       return res.status(403).json({ message: 'Konto deaktiviert – Zugriff verweigert' });
+
+    // SEC-001: Tokens vor Passwortänderung/-reset sofort ungültig machen
+    if ((decoded.tv ?? 0) !== (user.tokenVersion ?? 0))
+      return res.status(401).json({ message: 'Token abgelaufen – bitte erneut einloggen' });
 
     req.user = user;
     next();

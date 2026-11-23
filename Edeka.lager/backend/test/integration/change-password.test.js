@@ -99,3 +99,31 @@ test('ein 401 aus der Token-Prüfung trägt diese Kennzeichnung NICHT', async ()
     'sonst würde eine abgelaufene Sitzung nicht mehr zum Abmelden führen — ' +
     'genau die Leitplanke, die das verhindern soll');
 });
+
+test('SEC-001: Altes JWT wird nach Passwortänderung und Admin-Reset sofort abgewiesen (401)', async () => {
+  const user = await makeUser({ username: 'anna' });
+  const { token: altesToken } = await login('anna');
+
+  const changed = await req('/api/auth/change-password', {
+    method: 'PUT', token: altesToken,
+    body: { currentPassword: DEFAULT_PASSWORD, newPassword: NEU }
+  });
+  assert.equal(changed.status, 200);
+
+  const nachWechsel = await req('/api/auth/me', { token: altesToken });
+  assert.equal(nachWechsel.status, 401, 'altes Token darf nach Passwortwechsel nicht mehr gelten');
+
+  const { token: neuesToken } = await login('anna', NEU);
+  assert.equal((await req('/api/auth/me', { token: neuesToken })).status, 200);
+
+  await makeUser({ username: 'chef', role: 'admin' });
+  const { token: adminToken } = await login('chef');
+  const reset = await req(`/api/users/${user._id}/reset-password`, {
+    method: 'PUT', token: adminToken,
+    body: { newPassword: 'NochEinPasswort123' }
+  });
+  assert.equal(reset.status, 200);
+
+  const nachReset = await req('/api/auth/me', { token: neuesToken });
+  assert.equal(nachReset.status, 401, 'Token darf nach Admin-Passwort-Reset nicht mehr gelten');
+});

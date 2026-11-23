@@ -177,7 +177,10 @@ window.animVal = animVal;
 
 // 8. report_sending
 // جایگزین sendTelegramReport قدیمی — الان snapshot هم ذخیره می‌کند، نه فقط ارسال تلگرام
+let _sendingReport = false;
 async function sendReportNow() {
+  if (_sendingReport) return null;
+  _sendingReport = true;
   showToast('📤 Bericht wird erstellt …', 'info');
   try {
     const result = await api('/api/reports/send-now', 'POST');
@@ -193,6 +196,8 @@ async function sendReportNow() {
   } catch (e) {
     showToast('⚠️ ' + e.message, 'err');
     throw e;
+  } finally {
+    _sendingReport = false;
   }
 }
 window.sendReportNow = sendReportNow;
@@ -411,7 +416,7 @@ function downloadCSV(rows, filename) {
   a.href     = url;
   a.download = filename;
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 window.downloadCSV = downloadCSV;
 
@@ -422,6 +427,10 @@ async function downloadReportFile(type, params = {}) {
     const res = await fetch(`/api/reports/export?${qs}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
+    if (res.status === 401) {
+      logout();
+      return;
+    }
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.message || `Export fehlgeschlagen (${res.status})`);
@@ -436,7 +445,7 @@ async function downloadReportFile(type, params = {}) {
     a.href = url;
     a.download = filename;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (e) {
     showToast('⚠️ ' + e.message, 'err');
   }

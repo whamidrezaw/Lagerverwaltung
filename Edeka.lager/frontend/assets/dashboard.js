@@ -172,6 +172,16 @@ function renderTable() {
   const tbody = document.getElementById('product-tbody');
   const emptyState = document.getElementById('empty-state');
 
+  // FE-005: Aktives Bestandseingabefeld merken, damit eine verzögerte
+  // Speicherantwort einer anderen Zeile weder Fokus noch Eingabe zerstört.
+  const activeEl = document.activeElement;
+  let focusedStockId = null;
+  let focusedStockVal = null;
+  if (activeEl && activeEl.matches && activeEl.matches('.step-val[data-bestand-id]')) {
+    focusedStockId = activeEl.dataset.bestandId;
+    focusedStockVal = activeEl.value;
+  }
+
   if (rows.length === 0) {
     tbody.innerHTML = '';
     emptyState.style.display = 'flex';
@@ -226,6 +236,17 @@ function renderTable() {
       </td>
     </tr>`;
   }).join('');
+
+  if (focusedStockId !== null) {
+    const inputs = tbody.querySelectorAll('.step-val[data-bestand-id]');
+    for (const input of inputs) {
+      if (input.dataset.bestandId === focusedStockId) {
+        input.value = focusedStockVal;
+        input.focus();
+        break;
+      }
+    }
+  }
 }
 
 // ── Bestand ändern ────────────────────────────────────────────────
@@ -315,8 +336,18 @@ function closeProductModal() {
 }
 window.closeProductModal = closeProductModal;
 
+let _submittingProduct = false;
+
 async function submitProductForm(evt) {
   evt.preventDefault();
+  if (_submittingProduct) return false;
+  const form = evt.currentTarget || evt.target;
+  const submitBtn = form && typeof form.querySelector === 'function'
+    ? form.querySelector('button[type="submit"]')
+    : null;
+  _submittingProduct = true;
+  if (submitBtn) submitBtn.disabled = true;
+
   const id = document.getElementById('product-id').value;
   const payload = {
     emoji:    document.getElementById('product-emoji').value.trim() || '📦',
@@ -339,6 +370,9 @@ async function submitProductForm(evt) {
     await refreshAll();
   } catch (e) {
     showToast('⚠️ ' + e.message, 'err');
+  } finally {
+    _submittingProduct = false;
+    if (submitBtn) submitBtn.disabled = false;
   }
   return false;
 }
